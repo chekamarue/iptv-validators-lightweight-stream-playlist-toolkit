@@ -1,0 +1,16 @@
+# Docker ignores
+.git
+.github
+tests/
+.venv
+venv
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+README.md
+requirements.txt
+.gitignore

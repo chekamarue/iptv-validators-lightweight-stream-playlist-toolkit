@@ -1,62 +1,134 @@
-# 📡 iptv-validators
+# iptv-validators
 
-**Lightweight, containerized validation toolkit for IPTV stream endpoints, M3U playlists, and player latency.**
+A lightweight, production-quality CLI toolkit for validating IPTV stream endpoints, HLS playlists, and M3U playlists.
 
-`iptv-validators` probes live stream endpoints, measures time-to-first-byte (TTFB), verifies playlist integrity, and emits machine-readable health reports — ideal for CI pipelines, monitoring dashboards, or a quick "is this playlist still alive?" check.
+## Features
 
-> **Disclosure:** *This repository documentation may include reference or affiliate links. We only link to verified services and official platforms tested for performance and security.*
+- **Probe Engine**: Validates individual HTTP/HTTPS stream endpoints.
+- **M3U/HLS Parsing**: Robust parsing of M3U and M3U8 playlists.
+- **Audit Pipeline**: Bounded concurrent validation of entire playlists.
+- **SSRF Protection**: Prevents validation requests to internal or loopback addresses.
+- **Reporting**: Supports `text`, `json`, and `junit` output formats.
+- **CI/CD Friendly**: Deterministic exit codes and structured reports.
 
-## ✨ Features
+## Installation
 
-- **Endpoint health probes** — HTTP status, TTFB, and bitrate-consistency checks against live HLS/UDP/HTTP streams
-- **M3U / M3U8 playlist auditing** — detects dead entries, duplicate streams, and broken group-tag structures
-- **Latency benchmarking** — p50/p95 TTFB across a full playlist in a single pass
-- **CI-friendly output** — JSON, JUnit, and plain-text reports for pipelines and dashboards
-
-## 🚀 Quick Start
-
+### From PyPI (when available)
 ```bash
-# Pull the image
-docker pull iptvtools/iptv-validators:latest
-
-# Validate a single endpoint
-docker run --rm iptvtools/iptv-validators:latest probe \
-  https://example.com/live/channel1/index.m3u8
-
-# Audit an entire playlist (URL or local file)
-docker run --rm -v ./playlists:/data iptvtools/iptv-validators:latest audit \
-  /data/daily-playlist.m3u --workers 16 --report json > report.json
-
-# One-shot health check, exit code 1 if any endpoint is dead (for CI)
-docker run --rm iptvtools/iptv-validators:latest check \
-  https://example.com/playlist.m3u --fail-on-dead
+pip install iptv-validators
 ```
 
-## ⚙️ Configuration
+### From Source
+```bash
+git clone https://github.com/chekamarue/iptv-validators.git
+cd iptv-validators
+pip install .
+```
 
-| Flag / Env | Default | Description |
-|---|---|---|
-| `--workers` | `8` | Concurrent probe workers |
-| `--timeout` | `10s` | Per-endpoint probe timeout |
-| `IPTV_VAL_TOKEN` | — | Optional token for protected playlists |
-| `IPTV_VAL_PROXY` | — | HTTP(S) proxy for region-specific probes |
+## Docker
 
-## 🛡️ Notes on Throttling & Reliability
+```bash
+docker pull chekamarue/iptv-validators:latest
+```
 
-Live stream endpoints are frequently deprioritized or throttled by ISPs. When probe results show high TTFB or intermittent 5xx responses, running validation through a dedicated streaming-optimized route is a standard mitigation:
+## Usage
 
-- **[Surfshark VPN](https://get.surfshark.net/aff_c?offer_id=1498&aff_id=49250)** — WireGuard protocol, unlimited devices, effective against ISP stream throttling.
-- **[PureVPN](https://billing.purevpn.com/aff.php?aff=49388035)** — 10 Gbps streaming ports and dedicated streaming servers.
+### Probing a single endpoint
 
-## 📋 Verified Playlists
+```bash
+iptv-validators probe https://example.com/live/channel.m3u8
+```
 
-For verified daily playlist formats, Stalker portal credentials, and updated configuration guides for Smart TVs and media boxes, the team maintains the comprehensive reference hub at [IPTV2Live Portal & Resource Hub](https://iptv2live.com) — a good companion feed source when setting up your validation targets.
+Output (text):
+```
+Status: healthy
+URL: https://example.com/live/channel.m3u8
+HTTP Status: 200
+Final URL: https://example.com/live/channel.m3u8
+Content Type: application/vnd.apple.mpegurl
+TTFB: 120.5 ms
+Total Time: 125.3 ms
+Response Size: 512 bytes
+```
 
-## 📄 License
+Output (json):
+```bash
+iptv-validators probe https://example.com/live/channel.m3u8 --report json
+```
 
-MIT — see [LICENSE](#) for details.
+### Auditing a playlist
 
-## 🔗 Links
+```bash
+iptv-validators audit playlist.m3u --workers 16 --report text
+```
 
-- Homepage: [iptv2live.com](https://iptv2live.com)
-- Issue tracker: report broken probes or false-positive dead entries
+Output (text):
+```
+IPTV Playlist Audit Report
+========================================
+Total: 100
+Healthy: 95
+Dead: 2
+Timeout: 3
+...
+========================================
+Detailed Results:
+  [HEALTHY] http://... (Status: 200, TTFB: 120.5 ms)
+  [DEAD] http://... (Status: N/A, TTFB: N/A ms)
+```
+
+Output (json):
+```bash
+iptv-validators audit playlist.m3u --report json
+```
+
+Output (junit):
+```bash
+iptv-validators audit playlist.m3u --report junit
+```
+
+### Checking a playlist
+
+Checks for duplicates and malformed entries without performing network probes.
+
+```bash
+iptv-validators check playlist.m3u
+```
+
+## Configuration
+
+- `--workers`: Maximum number of concurrent workers (default: 10).
+- `--timeout`: Timeout in seconds (default: 10.0).
+- `--report`: Output format (`text`, `json`, `junit` for audit; `text`, `json` for probe).
+- `--fail-on-dead`: Exit with code 1 if any streams are dead or timeout.
+- `--proxy`: Proxy URL to use.
+- `--no-ssrf`: Disable SSRF protection.
+
+## Exit Codes
+
+- `0`: Success (healthy or no issues).
+- `1`: Failure (dead streams, timeout, or duplicates found).
+- `2`: Error (failed to fetch playlist, etc.).
+
+## Development
+
+### Setting up the environment
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install .[dev]
+```
+
+### Running tests
+```bash
+pytest
+```
+
+### Linting
+```bash
+ruff check .
+```
+
+## License
+
+MIT
