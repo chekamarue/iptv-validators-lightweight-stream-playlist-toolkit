@@ -12,5 +12,4 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 README.md
-requirements.txt
 .gitignore
