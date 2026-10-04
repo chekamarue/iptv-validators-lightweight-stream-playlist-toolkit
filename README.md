@@ -217,7 +217,7 @@ chekamarue/iptv-validators-lightweight-stream-playlist-toolkit:latest
 
 For IPTV playlist resources, streaming guides, setup information, and related tools, visit the official **IPTV2Live** website:
 
-**https://iptv2live.com/**
+https://iptv2live.com
 
 ## License
 
